@@ -1,37 +1,39 @@
 import sys
 import os
 from shutil import copy
+from subprocess import run, CalledProcessError
 
-argv = sys.argv
-argc = len(sys.argv)
 projectName: list[str]
 tempPath = "cpp-init-templates"
 
-if (argc == 1):
+if len(sys.argv) == 1:
     print("Missing params: Project-Name")
     sys.exit(1)
-else:
-    argv.pop(0)
-    projectName = '-'.join(argv)
-    print(f"Project Name: {projectName}")
+
+projectName = '-'.join(sys.argv[1:])
+print(f"Project Name: {projectName}")
+
+directories = [projectName, os.path.join(projectName, "src")]
+for directory in directories:
+    try:
+        os.mkdir(directory)
+        print(f"Created Directory: {directory}")
+    except PermissionError as permE:
+        print(f"Permission error: {permE}")
+
+files_to_copy = [
+    ("main-t.txt", "src/main.cpp"),
+    ("conanfile-t.txt", "conanfile.txt"),
+    ("mesonbuild-t.txt", "meson.build")
+]
+
+for src, dest in files_to_copy:
+    copy(os.path.join(tempPath, src), os.path.join(projectName, dest))
 
 try:
-    os.mkdir(projectName)
-    print(f"Created Directory: {projectName}")
-except PermissionError as permE:
-    print(f"Permission error: {permE}")
-
-try:
-    os.mkdir(f"{projectName}\\src")
-    print(f"Created Directory: {projectName}\\src")
-except PermissionError as permE:
-    print(f"Permission error: {permE}")
-
-copy(f"{tempPath}\\main-t.txt",f"{projectName}\\src\\main.cpp")
-copy(f"{tempPath}\\conanfile-t.txt", f"{projectName}\\conanfile.txt")
-copy(f"{tempPath}\\mesonbuild-t.txt", f"{projectName}\\meson.build")
-
-try: 
-    os.system(f"powershell.exe cd .\\{projectName}\\; conan install . --output-folder=build --build=meson; cd .\\build\\; meson setup --native-file conan_meson_native.ini .. meson-src; meson compile -C .\\meson-src\\")
-except PermissionError as permE:
-    print(f"Permission error: {permE}")
+    run([
+        "powershell.exe",
+        f"cd .\\{projectName}\\; conan install . --output-folder=build --build=meson; cd .\\build\\; meson setup --native-file conan_meson_native.ini .. meson-src; meson compile -C .\\meson-src\\"
+    ], check=True, shell=True)
+except (PermissionError, CalledProcessError) as e:
+    print(f"Error: {e}")
