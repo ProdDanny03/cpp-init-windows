@@ -1,0 +1,5 @@
+project('cpp-init-project', 'cpp', version: '1.0.0')
+
+dep1 = dependency('boost', version: '1.86.0')
+
+executable('cpp-init-build', 'src/main.cpp', dependencies: [dep1])
